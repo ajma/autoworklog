@@ -458,6 +458,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.action === "deleteEntry") {
+    (async () => {
+      const { date, docId } = message;
+      // If deleting from today and it's the active doc, discard in-memory state
+      if (date === todayKey() && docId === activeDocId) {
+        activeDocId = null;
+        activeDocUrl = null;
+        activeDocTitle = null;
+        activeDocType = null;
+        activeStartTime = null;
+      }
+      const result = await chrome.storage.local.get(date);
+      const log = result[date];
+      if (log && log[docId]) {
+        delete log[docId];
+        await chrome.storage.local.set({ [date]: log });
+      }
+      sendResponse({ success: true });
+    })();
+    return true;
+  }
+
   if (message.action === "clearLog") {
     (async () => {
       // Discard in-memory tracking so flushActiveDoc won't re-write cleared data

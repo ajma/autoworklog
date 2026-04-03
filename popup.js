@@ -194,10 +194,10 @@ async function loadLog() {
       return;
     }
 
-    const entries = Object.values(resp.log).sort((a, b) => b.totalSeconds - a.totalSeconds);
+    const entries = Object.entries(resp.log).sort((a, b) => b[1].totalSeconds - a[1].totalSeconds);
     let html = "";
 
-    for (const entry of entries) {
+    for (const [docId, entry] of entries) {
       const title = entry.title || "Untitled";
       const displayTitle = title.length > 60 ? title.slice(0, 57) + "..." : title;
       const type = entry.type || "Doc";
@@ -207,6 +207,7 @@ async function loadLog() {
           <a class="log-title" href="${entry.url}" data-url="${entry.url}" title="${title}">${displayTitle}</a>
           <span class="log-time"><span class="material-symbols-outlined">timer</span>${formatDuration(entry.totalSeconds)}</span>
           <span class="log-visits"><span class="material-symbols-outlined">visibility</span>${entry.visits}</span>
+          <button class="log-delete" data-doc-id="${docId}" title="Remove"><span class="material-symbols-outlined">delete</span></button>
         </div>
       `;
     }
@@ -230,7 +231,18 @@ async function loadLog() {
       });
     });
 
-    const totalSeconds = entries.reduce((sum, e) => sum + e.totalSeconds, 0);
+    // Delete button handlers
+    logList.querySelectorAll(".log-delete").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const docId = btn.dataset.docId;
+        chrome.runtime.sendMessage({ action: "deleteEntry", date: currentDateKey(), docId }, () => {
+          loadLog();
+        });
+      });
+    });
+
+    const totalSeconds = entries.reduce((sum, e) => sum + e[1].totalSeconds, 0);
     logSummary.textContent = `${entries.length} file${entries.length !== 1 ? "s" : ""} — ${formatDuration(totalSeconds)} total`;
   });
 }

@@ -388,6 +388,33 @@ body {
   margin-top: 4px;
 }
 
+.log-delete {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--md-error);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.log-delete .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.log-delete:hover {
+  background: var(--md-error-container);
+}
+
+.log-entry:hover .log-delete {
+  display: inline-flex;
+}
+
 .log-type {
   display: inline-flex;
   align-items: center;
