@@ -73,6 +73,10 @@ body {
   padding: 12px 0 4px;
 }
 
+.top-bar .day-nav {
+  margin-left: auto;
+}
+
 .top-bar-icon {
   font-size: 24px;
   color: var(--md-primary);
@@ -109,6 +113,60 @@ body {
   line-height: 20px;
   letter-spacing: 0.25px;
 }
+
+/* --- Filter --- */
+.filter-wrap {
+  position: relative;
+}
+
+.filter-input {
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-xl);
+  background: var(--md-surface-container-low);
+  color: var(--md-on-surface);
+  outline: none;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.filter-input:focus {
+  border-color: var(--md-primary);
+  background: var(--md-surface-container-lowest);
+}
+
+.filter-input::placeholder {
+  color: var(--md-on-surface-variant);
+}
+
+.filter-clear {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  padding: 0;
+}
+
+.filter-clear .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.filter-clear:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
 
 /* --- Card --- */
 .card {
@@ -318,31 +376,25 @@ body {
 
 /* --- Log Entries --- */
 .log-entry {
-  padding: 12px;
+  padding: 8px 12px;
   background: var(--md-surface-container-low);
   border-radius: var(--md-shape-sm);
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.log-entry + .log-entry {
-  margin-top: 8px;
-}
-
-.log-entry-header {
-  display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
 }
 
+.log-entry + .log-entry {
+  margin-top: 4px;
+}
+
 .log-type {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  padding: 2px 8px;
-  border-radius: var(--md-shape-sm);
-  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
   flex-shrink: 0;
 }
 
@@ -356,42 +408,56 @@ body {
 .log-type[data-type="Jam"]     { background: #f37c22; color: #fff; }
 
 .log-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--md-primary);
-  word-break: break-word;
-  line-height: 20px;
+  line-height: 18px;
   text-decoration: none;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .log-title:hover {
   text-decoration: underline;
 }
 
-.log-meta {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
 .log-time {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
+  gap: 3px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--md-primary);
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 65px;
+  justify-content: flex-end;
 }
 
 .log-time .material-symbols-outlined {
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .log-visits {
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--md-on-surface-variant);
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 32px;
+  justify-content: flex-end;
+}
+
+.log-visits .material-symbols-outlined {
+  font-size: 13px;
 }
 
 .empty {

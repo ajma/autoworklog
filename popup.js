@@ -12,6 +12,7 @@ const clearBtn = document.getElementById("clear-btn");
 const exportStatus = document.getElementById("export-status");
 const prevDayBtn = document.getElementById("prev-day-btn");
 const nextDayBtn = document.getElementById("next-day-btn");
+const filterInput = document.getElementById("filter-input");
 
 const GOOGLE_SHEETS_PATTERN = /^https:\/\/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/;
 
@@ -32,6 +33,17 @@ function formatDuration(totalSeconds) {
   if (mins > 0) return `${mins}m ${secs}s`;
   return `${secs}s`;
 }
+
+// Inline SVGs matching Google Workspace product icons
+const TYPE_SVGS = {
+  Doc: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="#fff" d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm8 1.5L19.5 9H14V3.5zM7 13h10v1.5H7V13zm0 3.5h7v1.5H7v-1.5zm0-7h4V11H7V9.5z"/></svg>`,
+  Sheet: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="#fff" d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm8 1.5L19.5 9H14V3.5zM7 12h3v2.5H7V12zm0 3.5h3V18H7v-2.5zm4-3.5h3v2.5h-3V12zm0 3.5h3V18h-3v-2.5zm4-3.5h2v2.5h-2V12zm0 3.5h2V18h-2v-2.5z"/></svg>`,
+  Slide: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="#fff" d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm3 1v12h12V6H6zm2 2h8v8H8V8z"/></svg>`,
+  Form: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="#fff" d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm8 1.5L19.5 9H14V3.5zM8 12a1.25 1.25 0 1 1 0 2.5A1.25 1.25 0 0 1 8 12zm0 3.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5zM11 12.5h5.5V14H11v-1.5zm0 3.5h5.5v1.5H11V16z"/></svg>`,
+  Drawing: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="#fff" d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm4 9l3-4 2.5 3 3.5-5L19 15H7z"/></svg>`,
+  Site: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="#fff" d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm2 0v2h14V5H5zm0 4v10h5V9H5zm7 0v10h7V9h-7z"/></svg>`,
+  Jam: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="#fff" d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm9 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/></svg>`,
+};
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
@@ -191,14 +203,10 @@ async function loadLog() {
       const type = entry.type || "Doc";
       html += `
         <div class="log-entry">
-          <div class="log-entry-header">
-            <span class="log-type" data-type="${type}">${type}</span>
-            <a class="log-title" href="${entry.url}" data-url="${entry.url}" title="${title}">${displayTitle}</a>
-          </div>
-          <div class="log-meta">
-            <span class="log-time"><span class="material-symbols-outlined">timer</span>${formatDuration(entry.totalSeconds)}</span>
-            <span class="log-visits">${entry.visits} visit${entry.visits !== 1 ? "s" : ""}</span>
-          </div>
+          <span class="log-type" data-type="${type}" title="${type}">${TYPE_SVGS[type] || TYPE_SVGS.Doc}</span>
+          <a class="log-title" href="${entry.url}" data-url="${entry.url}" title="${title}">${displayTitle}</a>
+          <span class="log-time"><span class="material-symbols-outlined">timer</span>${formatDuration(entry.totalSeconds)}</span>
+          <span class="log-visits"><span class="material-symbols-outlined">visibility</span>${entry.visits}</span>
         </div>
       `;
     }
@@ -226,6 +234,26 @@ async function loadLog() {
     logSummary.textContent = `${entries.length} file${entries.length !== 1 ? "s" : ""} — ${formatDuration(totalSeconds)} total`;
   });
 }
+
+// --- Filter ---
+const filterClear = document.getElementById("filter-clear");
+
+function applyFilter() {
+  const query = filterInput.value.toLowerCase();
+  filterClear.style.display = query.length > 0 ? "inline-flex" : "none";
+  logList.querySelectorAll(".log-entry").forEach(entry => {
+    const title = entry.querySelector(".log-title").textContent.toLowerCase();
+    entry.style.display = title.includes(query) ? "" : "none";
+  });
+}
+
+filterInput.addEventListener("input", applyFilter);
+
+filterClear.addEventListener("click", () => {
+  filterInput.value = "";
+  applyFilter();
+  filterInput.focus();
+});
 
 // --- Export ---
 exportBtn.addEventListener("click", () => {
@@ -294,4 +322,5 @@ clearBtn.addEventListener("click", () => {
   loadSettings();
   await loadAvailableDays();
   loadLog();
+  filterInput.focus();
 })();
