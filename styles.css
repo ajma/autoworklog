@@ -1,0 +1,357 @@
+/* --- MD3 Design Tokens --- */
+:root {
+  /* Primary */
+  --md-primary: #1b6ef3;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #d6e3ff;
+  --md-on-primary-container: #001b3e;
+
+  /* Secondary */
+  --md-secondary: #565e71;
+  --md-on-secondary: #ffffff;
+  --md-secondary-container: #dae2f9;
+  --md-on-secondary-container: #131c2b;
+
+  /* Error */
+  --md-error: #ba1a1a;
+  --md-on-error: #ffffff;
+  --md-error-container: #ffdad6;
+  --md-on-error-container: #410002;
+
+  /* Surface */
+  --md-surface: #f8f9ff;
+  --md-surface-dim: #d7d9e4;
+  --md-surface-container-lowest: #ffffff;
+  --md-surface-container-low: #f1f3fe;
+  --md-surface-container: #ecedfa;
+  --md-surface-container-high: #e6e7f4;
+  --md-on-surface: #191c20;
+  --md-on-surface-variant: #44474e;
+  --md-outline: #74777f;
+  --md-outline-variant: #c4c6d0;
+
+  /* Success */
+  --md-success: #0d652d;
+
+  /* Shape */
+  --md-shape-xs: 4px;
+  --md-shape-sm: 8px;
+  --md-shape-md: 12px;
+  --md-shape-lg: 16px;
+  --md-shape-xl: 28px;
+}
+
+/* --- Reset & Base --- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Google Sans", "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  color: var(--md-on-surface);
+  background: var(--md-surface);
+  width: 400px;
+  min-height: 200px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  padding: 8px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* --- Top App Bar --- */
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0 4px;
+}
+
+.top-bar-icon {
+  font-size: 24px;
+  color: var(--md-primary);
+}
+
+/* --- Typography --- */
+.title-large {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 28px;
+  letter-spacing: 0;
+  color: var(--md-on-surface);
+}
+
+.title-small {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  color: var(--md-on-surface);
+}
+
+.label-medium {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.5px;
+  color: var(--md-on-surface-variant);
+}
+
+.body-medium {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0.25px;
+}
+
+/* --- Card --- */
+.card {
+  background: var(--md-surface-container-lowest);
+  border-radius: var(--md-shape-md);
+  padding: 16px;
+  border: 1px solid var(--md-outline-variant);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* --- MD3 Text Field (outlined) --- */
+.text-field {
+  position: relative;
+}
+
+.text-field input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 14px;
+  font-family: inherit;
+  border: 1px solid var(--md-outline);
+  border-radius: var(--md-shape-xs);
+  background: transparent;
+  color: var(--md-on-surface);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.text-field input:focus {
+  border-color: var(--md-primary);
+  border-width: 2px;
+  padding: 13px 15px; /* compensate for border width */
+}
+
+.text-field label {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: var(--md-on-surface-variant);
+  background: var(--md-surface-container-lowest);
+  padding: 0 4px;
+  pointer-events: none;
+  transition: all 0.15s ease;
+}
+
+.text-field input:focus + label,
+.text-field input:not(:placeholder-shown) + label {
+  top: 0;
+  font-size: 12px;
+  color: var(--md-primary);
+  letter-spacing: 0.4px;
+}
+
+/* --- MD3 Buttons --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 24px;
+  height: 40px;
+  border: none;
+  border-radius: var(--md-shape-xl);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  cursor: pointer;
+  transition: box-shadow 0.2s, background-color 0.2s, opacity 0.2s;
+  white-space: nowrap;
+}
+
+.btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* Filled button */
+.btn-filled {
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+}
+
+.btn-filled:hover {
+  box-shadow: 0 1px 3px 1px rgba(0, 0, 0, 0.15), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.btn-filled:active {
+  box-shadow: none;
+}
+
+/* Tonal button */
+.btn-tonal {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+
+.btn-tonal:hover {
+  box-shadow: 0 1px 3px 1px rgba(0, 0, 0, 0.15), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.btn-tonal:active {
+  box-shadow: none;
+}
+
+/* Outlined button */
+.btn-outlined {
+  background: transparent;
+  color: var(--md-primary);
+  border: 1px solid var(--md-outline);
+}
+
+.btn-outlined:hover {
+  background: rgba(27, 110, 243, 0.08);
+}
+
+/* Error outlined button */
+.btn-error {
+  color: var(--md-error);
+  border-color: var(--md-outline);
+}
+
+.btn-error:hover {
+  background: rgba(186, 26, 26, 0.08);
+}
+
+/* Disabled state */
+.btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* --- Status Messages --- */
+.status-msg {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  min-height: 0;
+  line-height: 16px;
+  padding: 0 4px;
+  transition: all 0.2s;
+}
+
+.status-msg:empty {
+  display: none;
+}
+
+.status-msg.success {
+  color: var(--md-success);
+}
+
+.status-msg.error {
+  color: var(--md-error);
+}
+
+/* --- Log Entries --- */
+.log-entry {
+  padding: 12px;
+  background: var(--md-surface-container-low);
+  border-radius: var(--md-shape-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.log-entry + .log-entry {
+  margin-top: 8px;
+}
+
+.log-entry-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.log-type {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: var(--md-on-secondary-container);
+  background: var(--md-secondary-container);
+  padding: 2px 8px;
+  border-radius: var(--md-shape-sm);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.log-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--md-on-surface);
+  word-break: break-word;
+  line-height: 20px;
+}
+
+.log-meta {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.log-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--md-primary);
+  letter-spacing: 0.4px;
+}
+
+.log-time .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.log-visits {
+  font-size: 12px;
+  color: var(--md-on-surface-variant);
+  letter-spacing: 0.4px;
+}
+
+.empty {
+  color: var(--md-on-surface-variant);
+  font-size: 14px;
+  padding: 8px 0;
+}
+
+.summary {
+  padding-top: 4px;
+  color: var(--md-on-surface-variant);
+}

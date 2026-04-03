@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Auto Work Log",
+  "version": "1.0.0",
+  "description": "Tracks Google Docs visits and time spent, then exports a daily summary to a Google Doc.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "alarms",
+    "identity"
+  ],
+  "host_permissions": [
+    "https://docs.google.com/*",
+    "https://sites.google.com/*",
+    "https://jamboard.google.com/*",
+    "https://sheets.googleapis.com/*"
+  ],
+  "oauth2": {
+    "client_id": "799726755078-a09hbjhkj11lbm638jarl48p00jnjv3e.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/spreadsheets"
+    ]
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
