@@ -196,6 +196,31 @@ async function exportUnexportedDays() {
       break; // stop on first failure, will retry next alarm
     }
   }
+
+  // Clean up old data beyond retention period
+  await cleanupOldLogs();
+}
+
+// Remove logs older than the configured retention days.
+async function cleanupOldLogs() {
+  const { retentionDays } = await chrome.storage.local.get("retentionDays");
+  const days = retentionDays || 7;
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffKey = cutoff.toISOString().slice(0, 10);
+
+  const all = await chrome.storage.local.get(null);
+  const keysToRemove = [];
+  for (const key of Object.keys(all)) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(key) && key < cutoffKey) {
+      keysToRemove.push(key, `exported_${key}`);
+    }
+  }
+  if (keysToRemove.length > 0) {
+    await chrome.storage.local.remove(keysToRemove);
+    console.log(`Auto Work Log: Cleaned up ${keysToRemove.length / 2} old day(s).`);
+  }
 }
 
 // --- Google Sheets export ---
@@ -405,6 +430,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: true, token });
       }
     });
+    return true;
+  }
+
+  if (message.action === "getLogForDate") {
+    (async () => {
+      if (message.date === todayKey()) {
+        await flushActiveDoc();
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab) {
+          const info = extractFileInfo(tab.url || "");
+          if (info) startTracking(info.id, tab.url, tab.title, info.type);
+        }
+      }
+      const result = await chrome.storage.local.get(message.date);
+      sendResponse({ log: result[message.date] || {} });
+    })();
+    return true;
+  }
+
+  if (message.action === "getAvailableDays") {
+    (async () => {
+      const all = await chrome.storage.local.get(null);
+      const days = Object.keys(all).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse();
+      sendResponse({ days });
+    })();
     return true;
   }
 

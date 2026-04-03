@@ -256,6 +256,43 @@ body {
   box-shadow: none;
 }
 
+/* Icon button (day nav) */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.15s;
+}
+
+.btn-icon:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.btn-icon:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.btn-icon .material-symbols-outlined {
+  font-size: 20px;
+}
+
+/* --- Day Navigation --- */
+.day-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
 /* --- Status Messages --- */
 .status-msg {
   font-size: 12px;
