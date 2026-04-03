@@ -398,8 +398,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "signIn") {
     chrome.identity.getAuthToken({ interactive: true }, (token) => {
       if (chrome.runtime.lastError) {
+        console.error("Auto Work Log: Sign-in failed.", chrome.runtime.lastError);
         sendResponse({ success: false, error: chrome.runtime.lastError.message });
       } else {
+        console.log("Auto Work Log: Sign-in succeeded.");
         sendResponse({ success: true, token });
       }
     });
