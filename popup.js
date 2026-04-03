@@ -44,6 +44,7 @@ function currentDateKey() {
 // --- Auth state ---
 function updateAuthUI(signedIn) {
   isSignedIn = signedIn;
+  exportBtn.style.visibility = "visible";
   if (signedIn) {
     authStatus.textContent = "Signed in";
     authStatus.className = "status-msg success";
@@ -103,11 +104,15 @@ saveSettingsBtn.addEventListener("click", async () => {
 // --- Sign in / Sign out ---
 signInBtn.addEventListener("click", () => {
   if (isSignedIn) {
-    // Sign out
+    // Sign out: revoke token so it doesn't auto-restore
     chrome.identity.getAuthToken({ interactive: false }, (token) => {
       if (token) {
+        // Revoke the token server-side
+        fetch(`https://accounts.google.com/o/oauth2/revoke?token=${token}`);
         chrome.identity.removeCachedAuthToken({ token }, () => {
-          updateAuthUI(false);
+          chrome.identity.clearAllCachedAuthTokens(() => {
+            updateAuthUI(false);
+          });
         });
       }
     });
