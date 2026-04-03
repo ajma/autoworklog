@@ -98,7 +98,7 @@ async function loadLog() {
         <div class="log-entry">
           <div class="log-entry-header">
             <span class="log-type">${type}</span>
-            <div class="log-title" title="${title}">${displayTitle}</div>
+            <a class="log-title" href="${entry.url}" data-url="${entry.url}" title="${title}">${displayTitle}</a>
           </div>
           <div class="log-meta">
             <span class="log-time"><span class="material-symbols-outlined">timer</span>${formatDuration(entry.totalSeconds)}</span>
@@ -109,6 +109,23 @@ async function loadLog() {
     }
 
     logList.innerHTML = html;
+
+    // Click handler: focus existing tab or open new one
+    logList.querySelectorAll(".log-title").forEach(link => {
+      link.addEventListener("click", async (e) => {
+        e.preventDefault();
+        const url = link.dataset.url;
+        const tabs = await chrome.tabs.query({});
+        const existing = tabs.find(t => t.url && t.url.startsWith(url.split("?")[0]));
+        if (existing) {
+          chrome.tabs.update(existing.id, { active: true });
+          chrome.windows.update(existing.windowId, { focused: true });
+        } else {
+          chrome.tabs.create({ url });
+        }
+        window.close();
+      });
+    });
 
     const totalSeconds = entries.reduce((sum, e) => sum + e.totalSeconds, 0);
     logSummary.textContent = `${entries.length} file${entries.length !== 1 ? "s" : ""} — ${formatDuration(totalSeconds)} total`;

@@ -408,6 +408,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.action === "clearLog") {
     (async () => {
+      // Discard in-memory tracking so flushActiveDoc won't re-write cleared data
+      activeDocId = null;
+      activeDocUrl = null;
+      activeDocTitle = null;
+      activeDocType = null;
+      activeStartTime = null;
       await chrome.storage.local.remove(todayKey());
       sendResponse({ success: true });
     })();

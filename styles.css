@@ -314,9 +314,14 @@ body {
 .log-title {
   font-size: 14px;
   font-weight: 500;
-  color: var(--md-on-surface);
+  color: var(--md-primary);
   word-break: break-word;
   line-height: 20px;
+  text-decoration: none;
+}
+
+.log-title:hover {
+  text-decoration: underline;
 }
 
 .log-meta {
