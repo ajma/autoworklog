@@ -53,7 +53,7 @@ function updateAuthUI(signedIn) {
     authStatus.textContent = "Not signed in";
     authStatus.className = "status-msg error";
     signInBtn.innerHTML = '<span class="material-symbols-outlined">login</span> Sign in with Google';
-    exportBtn.innerHTML = '<span class="material-symbols-outlined">content_copy</span> Copy as Markdown';
+    exportBtn.innerHTML = '<span class="material-symbols-outlined">content_copy</span> Copy';
   }
 }
 
@@ -256,15 +256,14 @@ exportBtn.addEventListener("click", () => {
       }
 
       const entries = Object.values(resp.log).sort((a, b) => b.totalSeconds - a.totalSeconds);
-      let md = `| Date | Type | Document Title | URL | Time Spent | Visits | Seconds |\n`;
-      md += `| --- | --- | --- | --- | --- | --- | --- |\n`;
-      for (const entry of entries) {
+      const rows = entries.map(entry => {
         const title = entry.title || "Untitled";
         const type = entry.type || "Doc";
-        md += `| ${dateKey} | ${type} | ${title} | ${entry.url} | ${formatDuration(entry.totalSeconds)} | ${entry.visits} | ${entry.totalSeconds} |\n`;
-      }
+        return [dateKey, type, title, entry.url, formatDuration(entry.totalSeconds), entry.visits, entry.totalSeconds].join("\t");
+      });
+      const tsv = rows.join("\n");
 
-      navigator.clipboard.writeText(md).then(() => {
+      navigator.clipboard.writeText(tsv).then(() => {
         exportStatus.textContent = "Copied to clipboard!";
         exportStatus.className = "status-msg success";
       }).catch(() => {
