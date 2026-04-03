@@ -13,6 +13,8 @@ const exportStatus = document.getElementById("export-status");
 const prevDayBtn = document.getElementById("prev-day-btn");
 const nextDayBtn = document.getElementById("next-day-btn");
 const filterInput = document.getElementById("filter-input");
+const settingsToggle = document.getElementById("settings-toggle");
+const settingsSection = document.getElementById("settings-section");
 
 const GOOGLE_SHEETS_PATTERN = /^https:\/\/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/;
 
@@ -327,6 +329,15 @@ clearBtn.addEventListener("click", () => {
   chrome.runtime.sendMessage({ action: "clearLog" }, () => {
     loadLog();
   });
+});
+
+// --- Settings toggle ---
+const mainView = document.getElementById("main-view");
+
+settingsToggle.addEventListener("click", () => {
+  const showingSettings = settingsSection.style.display !== "none";
+  settingsSection.style.display = showingSettings ? "none" : "flex";
+  mainView.style.display = showingSettings ? "" : "none";
 });
 
 // --- Init ---

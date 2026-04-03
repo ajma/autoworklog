@@ -51,7 +51,7 @@ async function saveLog(log) {
 
 // Record elapsed time for the currently active doc, then clear state.
 async function flushActiveDoc() {
-  if (!activeDocId || !activeStartTime) return;
+  if (!activeDocId || !activeStartTime || !activeDocUrl) return;
 
   const elapsed = Math.round((Date.now() - activeStartTime) / 1000); // seconds
   if (elapsed < 5) {
@@ -114,8 +114,10 @@ async function processTab(tab) {
 
   await flushActiveDoc();
 
-  if (fileInfo) {
-    startTracking(fileInfo.id, url, tab.title || url, fileInfo.type);
+  // Only start tracking if we have a valid URL and title
+  if (fileInfo && url) {
+    const title = tab.title && tab.title !== url ? tab.title : null;
+    startTracking(fileInfo.id, url, title || url, fileInfo.type);
   }
 }
 
