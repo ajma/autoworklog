@@ -187,7 +187,7 @@ async function loadLog() {
       html += `
         <div class="log-entry">
           <div class="log-entry-header">
-            <span class="log-type">${type}</span>
+            <span class="log-type" data-type="${type}">${type}</span>
             <a class="log-title" href="${entry.url}" data-url="${entry.url}" title="${title}">${displayTitle}</a>
           </div>
           <div class="log-meta">

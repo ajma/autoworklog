@@ -53,7 +53,7 @@ body {
   font-size: 14px;
   color: var(--md-on-surface);
   background: var(--md-surface);
-  width: 400px;
+  width: 500px;
   min-height: 200px;
   -webkit-font-smoothing: antialiased;
 }
@@ -340,13 +340,20 @@ body {
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.5px;
-  color: var(--md-on-secondary-container);
-  background: var(--md-secondary-container);
   padding: 2px 8px;
   border-radius: var(--md-shape-sm);
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+/* Google Workspace product colors */
+.log-type[data-type="Doc"]     { background: #4285f4; color: #fff; }
+.log-type[data-type="Sheet"]   { background: #0f9d58; color: #fff; }
+.log-type[data-type="Slide"]   { background: #f4b400; color: #fff; }
+.log-type[data-type="Form"]    { background: #7627bb; color: #fff; }
+.log-type[data-type="Drawing"] { background: #db4437; color: #fff; }
+.log-type[data-type="Site"]    { background: #4285f4; color: #fff; }
+.log-type[data-type="Jam"]     { background: #f37c22; color: #fff; }
 
 .log-title {
   font-size: 14px;
