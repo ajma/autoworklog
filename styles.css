@@ -503,3 +503,61 @@ body {
   padding-top: 4px;
   color: var(--md-on-surface-variant);
 }
+
+/* --- Dark Mode --- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Primary */
+    --md-primary: #a8c7fa;
+    --md-on-primary: #062e6f;
+    --md-primary-container: #17458a;
+    --md-on-primary-container: #d6e3ff;
+
+    /* Secondary */
+    --md-secondary: #bec6dc;
+    --md-on-secondary: #283041;
+    --md-secondary-container: #3e4759;
+    --md-on-secondary-container: #dae2f9;
+
+    /* Error */
+    --md-error: #ffb4ab;
+    --md-on-error: #690005;
+    --md-error-container: #93000a;
+    --md-on-error-container: #ffdad6;
+
+    /* Surface */
+    --md-surface: #111318;
+    --md-surface-dim: #111318;
+    --md-surface-container-lowest: #0c0e13;
+    --md-surface-container-low: #191c20;
+    --md-surface-container: #1d2024;
+    --md-surface-container-high: #282a2f;
+    --md-on-surface: #e2e2e9;
+    --md-on-surface-variant: #c4c6d0;
+    --md-outline: #8e9099;
+    --md-outline-variant: #44474e;
+
+    /* Success */
+    --md-success: #7ddc95;
+  }
+
+  .btn-outlined:hover {
+    background: rgba(168, 199, 250, 0.08);
+  }
+
+  .btn-error:hover {
+    background: rgba(255, 180, 171, 0.08);
+  }
+
+  .btn-icon:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .filter-clear:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .log-delete:hover {
+    background: var(--md-error-container);
+  }
+}
