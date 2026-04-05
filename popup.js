@@ -49,7 +49,8 @@ const TYPE_SVGS = {
 };
 
 function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function currentDateKey() {
@@ -82,6 +83,8 @@ async function loadSettings() {
   retentionDaysInput.value = data.retentionDays || 7;
 
   chrome.identity.getAuthToken({ interactive: false }, (token) => {
+    // Must read lastError to prevent Chrome from logging it as uncaught
+    void chrome.runtime.lastError;
     updateAuthUI(!!token);
   });
 }
@@ -181,7 +184,9 @@ nextDayBtn.addEventListener("click", () => {
 async function loadLog() {
   const dateKey = currentDateKey();
   const isToday = dateKey === todayKey();
-  logDate.textContent = isToday ? `Today (${dateKey})` : dateKey;
+  const [, month, day] = dateKey.split("-");
+  const shortDate = `${parseInt(month)}/${parseInt(day)}`;
+  logDate.textContent = isToday ? `Today (${shortDate})` : shortDate;
   updateNavButtons();
 
   // Show/hide clear button only for today
@@ -197,7 +202,7 @@ async function loadLog() {
       return;
     }
 
-    const entries = Object.entries(resp.log).sort((a, b) => b[1].totalSeconds - a[1].totalSeconds);
+    const entries = Object.entries(resp.log).filter(([, e]) => e.url).sort((a, b) => b[1].totalSeconds - a[1].totalSeconds);
     let html = "";
 
     for (const [docId, entry] of entries) {

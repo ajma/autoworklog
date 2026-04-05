@@ -42,7 +42,8 @@ chrome.storage.onChanged.addListener((changes) => {
 // --- Helpers ---
 
 function todayKey() {
-  return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function extractFileInfo(url) {
@@ -70,10 +71,10 @@ async function saveLog(log) {
 
 // Record elapsed time for the currently active doc, then clear state.
 async function flushActiveDoc() {
-  if (!activeDocId || !activeStartTime || !activeDocUrl) return;
+  if (!activeDocId || !activeStartTime || !activeDocUrl || !extractFileInfo(activeDocUrl)) return;
 
   const elapsed = Math.round((Date.now() - activeStartTime) / 1000); // seconds
-  if (elapsed < 5) {
+  if (elapsed < 1) {
     activeDocId = null;
     activeDocUrl = null;
     activeDocTitle = null;
@@ -153,6 +154,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 // Fired when a tab's URL or title updates (e.g. navigation within docs)
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (!changeInfo.url && !changeInfo.title) return;
+  if (!tab.url) return; // tab may not have URL populated yet
 
   // Only care if this is the active tab
   const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -425,7 +427,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tab) {
           const info = extractFileInfo(tab.url || "");
-          if (info) startTracking(info.id, tab.url, tab.title, info.type);
+          if (info && tab.url) startTracking(info.id, tab.url, tab.title || tab.url, info.type);
         }
       }
       const log = await getLog();
@@ -443,7 +445,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tab) {
           const info = extractFileInfo(tab.url || "");
-          if (info) startTracking(info.id, tab.url, tab.title, info.type);
+          if (info && tab.url) startTracking(info.id, tab.url, tab.title || tab.url, info.type);
         }
       }
       sendResponse(result);
@@ -472,7 +474,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
           if (tab) {
             const info = extractFileInfo(tab.url || "");
-            if (info) startTracking(info.id, tab.url, tab.title, info.type);
+            if (info && tab.url) startTracking(info.id, tab.url, tab.title || tab.url, info.type);
           }
         }
       }
