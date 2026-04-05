@@ -15,6 +15,7 @@ const nextDayBtn = document.getElementById("next-day-btn");
 const filterInput = document.getElementById("filter-input");
 const settingsToggle = document.getElementById("settings-toggle");
 const settingsSection = document.getElementById("settings-section");
+const pauseToggle = document.getElementById("pause-toggle");
 
 const GOOGLE_SHEETS_PATTERN = /^https:\/\/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/;
 
@@ -340,9 +341,28 @@ settingsToggle.addEventListener("click", () => {
   mainView.style.display = showingSettings ? "" : "none";
 });
 
+// --- Pause toggle ---
+async function updatePauseUI() {
+  const { trackingPaused } = await chrome.storage.local.get("trackingPaused");
+  const paused = !!trackingPaused;
+  pauseToggle.title = paused ? "Resume tracking" : "Pause tracking";
+  pauseToggle.querySelector(".material-symbols-outlined").textContent = paused ? "play_arrow" : "pause";
+}
+
+pauseToggle.addEventListener("click", async () => {
+  const { trackingPaused } = await chrome.storage.local.get("trackingPaused");
+  const newState = !trackingPaused;
+  await chrome.storage.local.set({ trackingPaused: newState });
+  if (newState) {
+    chrome.runtime.sendMessage({ action: "flushActive" });
+  }
+  updatePauseUI();
+});
+
 // --- Init ---
 (async () => {
   loadSettings();
+  updatePauseUI();
   await loadAvailableDays();
   loadLog();
   filterInput.focus();

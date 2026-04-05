@@ -20,6 +20,25 @@ let activeDocTitle = null;
 let activeDocType = null;
 let activeStartTime = null;
 
+// --- Pause badge ---
+
+async function updatePauseBadge() {
+  const { trackingPaused } = await chrome.storage.local.get("trackingPaused");
+  if (trackingPaused) {
+    chrome.action.setBadgeText({ text: " " });
+    chrome.action.setBadgeBackgroundColor({ color: "#ba1a1a" });
+    chrome.action.setBadgeTextColor({ color: "#ffffff" });
+  } else {
+    chrome.action.setBadgeText({ text: "" });
+  }
+}
+
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.trackingPaused) {
+    updatePauseBadge();
+  }
+});
+
 // --- Helpers ---
 
 function todayKey() {
@@ -103,6 +122,11 @@ async function handleTabChange(tabId) {
   }
 }
 
+async function isPaused() {
+  const { trackingPaused } = await chrome.storage.local.get("trackingPaused");
+  return !!trackingPaused;
+}
+
 async function processTab(tab) {
   const url = tab.url || "";
   const fileInfo = extractFileInfo(url);
@@ -114,8 +138,8 @@ async function processTab(tab) {
 
   await flushActiveDoc();
 
-  // Only start tracking if we have a valid URL and title
-  if (fileInfo && url) {
+  // Only start tracking if we have a valid URL and title, and not paused
+  if (fileInfo && url && !(await isPaused())) {
     const title = tab.title && tab.title !== url ? tab.title : null;
     startTracking(fileInfo.id, url, title || url, fileInfo.type);
   }
@@ -387,6 +411,7 @@ async function exportToGoogleDoc(dateKey) {
 // --- On startup, export any missed days ---
 chrome.runtime.onStartup.addListener(async () => {
   await exportUnexportedDays();
+  await updatePauseBadge();
 });
 
 // --- Message handling (from popup) ---
@@ -395,11 +420,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "getLog") {
     (async () => {
       await flushActiveDoc();
-      // Re-start tracking the current tab if still on a doc
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab) {
-        const info = extractFileInfo(tab.url || "");
-        if (info) startTracking(info.id, tab.url, tab.title, info.type);
+      // Re-start tracking the current tab if still on a doc and not paused
+      if (!(await isPaused())) {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab) {
+          const info = extractFileInfo(tab.url || "");
+          if (info) startTracking(info.id, tab.url, tab.title, info.type);
+        }
       }
       const log = await getLog();
       sendResponse({ log });
@@ -411,11 +438,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       await flushActiveDoc();
       const result = await exportToGoogleDoc();
-      // Re-start tracking
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab) {
-        const info = extractFileInfo(tab.url || "");
-        if (info) startTracking(info.id, tab.url, tab.title, info.type);
+      // Re-start tracking if not paused
+      if (!(await isPaused())) {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab) {
+          const info = extractFileInfo(tab.url || "");
+          if (info) startTracking(info.id, tab.url, tab.title, info.type);
+        }
       }
       sendResponse(result);
     })();
@@ -439,10 +468,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       if (message.date === todayKey()) {
         await flushActiveDoc();
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tab) {
-          const info = extractFileInfo(tab.url || "");
-          if (info) startTracking(info.id, tab.url, tab.title, info.type);
+        if (!(await isPaused())) {
+          const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (tab) {
+            const info = extractFileInfo(tab.url || "");
+            if (info) startTracking(info.id, tab.url, tab.title, info.type);
+          }
         }
       }
       const result = await chrome.storage.local.get(message.date);
@@ -477,6 +508,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         delete log[docId];
         await chrome.storage.local.set({ [date]: log });
       }
+      sendResponse({ success: true });
+    })();
+    return true;
+  }
+
+  if (message.action === "flushActive") {
+    (async () => {
+      await flushActiveDoc();
       sendResponse({ success: true });
     })();
     return true;
