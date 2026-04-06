@@ -1,26 +1,40 @@
-// Shared utilities — imported by background.js and popup.js as an ES module.
+// Shared utilities — imported by background.js, popup.js, and options.js.
 
-// --- URL parsing ---
+// --- Default URL rules ---
 
-// Matches Docs, Sheets, Slides, Forms, and Drawings
-const WORKSPACE_PATTERN = /^https:\/\/docs\.google\.com\/(document|spreadsheets|presentation|forms|drawings)\/d\/([a-zA-Z0-9_-]+)/;
-const SITES_PATTERN = /^https:\/\/sites\.google\.com\/[^/]+\/([a-zA-Z0-9_-]+)/;
+/** @typedef {{ id: string, label: string, pattern: string, enabled: boolean }} UrlRule */
 
-const WORKSPACE_TYPE_MAP = {
-  document: "Doc",
-  spreadsheets: "Sheet",
-  presentation: "Slide",
-  forms: "Form",
-  drawings: "Drawing",
-};
+/** @type {UrlRule[]} */
+export const DEFAULT_RULES = [
+  { id: "builtin_doc",     label: "Doc",     pattern: "^https://docs\\.google\\.com/document/d/([a-zA-Z0-9_-]+)",     enabled: true },
+  { id: "builtin_sheet",   label: "Sheet",   pattern: "^https://docs\\.google\\.com/spreadsheets/d/([a-zA-Z0-9_-]+)", enabled: true },
+  { id: "builtin_slide",   label: "Slide",   pattern: "^https://docs\\.google\\.com/presentation/d/([a-zA-Z0-9_-]+)", enabled: true },
+  { id: "builtin_form",    label: "Form",    pattern: "^https://docs\\.google\\.com/forms/d/([a-zA-Z0-9_-]+)",        enabled: true },
+  { id: "builtin_drawing", label: "Drawing", pattern: "^https://docs\\.google\\.com/drawings/d/([a-zA-Z0-9_-]+)",    enabled: true },
+  { id: "builtin_site",    label: "Site",    pattern: "^https://sites\\.google\\.com/[^/]+/([a-zA-Z0-9_-]+)",         enabled: true },
+];
 
-export function extractFileInfo(url) {
-  let match = url.match(WORKSPACE_PATTERN);
-  if (match) return { id: match[2], type: WORKSPACE_TYPE_MAP[match[1]] || match[1] };
+// --- URL matching ---
 
-  match = url.match(SITES_PATTERN);
-  if (match) return { id: match[1], type: "Site" };
-
+/**
+ * Match a URL against a list of rules. Returns file info from the first matching enabled rule.
+ * The first capture group in the pattern is used as the document ID.
+ * @param {string} url
+ * @param {UrlRule[]} rules
+ * @returns {{ id: string, type: string } | null}
+ */
+export function extractFileInfo(url, rules) {
+  for (const rule of rules) {
+    if (!rule.enabled) continue;
+    try {
+      const match = url.match(new RegExp(rule.pattern));
+      if (match) {
+        return { id: match[1] || url, type: rule.label };
+      }
+    } catch {
+      // skip invalid regex
+    }
+  }
   return null;
 }
 

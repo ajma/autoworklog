@@ -1,4 +1,4 @@
-import { todayKey, formatDuration, extractFileInfo } from './utils.js';
+import { todayKey, formatDuration, extractFileInfo, DEFAULT_RULES } from './utils.js';
 
 // --- Constants ---
 const DAILY_EXPORT_ALARM = "daily-export";
@@ -11,9 +11,22 @@ let activeDocTitle = null;
 let activeDocType = null;
 let activeStartTime = null;
 
-// Restore active tracking state after service worker restart.
-// chrome.storage.session survives SW termination but clears on browser restart.
-(async () => {
+/** @type {import('./utils.js').UrlRule[]} */
+let urlRules = [];
+
+// Restore state after service worker restart.
+// Event handlers must await this before using urlRules.
+const initReady = (async () => {
+  // Load URL rules from storage (or init with defaults on first run).
+  const { urlRules: stored } = await chrome.storage.local.get("urlRules");
+  if (stored) {
+    urlRules = stored;
+  } else {
+    urlRules = DEFAULT_RULES.map(r => ({ ...r }));
+    await chrome.storage.local.set({ urlRules });
+  }
+
+  // Restore active tracking session from session storage.
   const { activeSession } = await chrome.storage.session.get("activeSession");
   if (activeSession) {
     activeDocId = activeSession.docId;
@@ -38,8 +51,9 @@ async function updatePauseBadge() {
 }
 
 chrome.storage.onChanged.addListener((changes) => {
-  if (changes.trackingPaused) {
-    updatePauseBadge();
+  if (changes.trackingPaused) updatePauseBadge();
+  if (changes.urlRules && changes.urlRules.newValue) {
+    urlRules = changes.urlRules.newValue;
   }
 });
 
@@ -57,9 +71,10 @@ async function saveLog(log) {
 
 // Record elapsed time for the currently active doc, then clear state.
 async function flushActiveDoc() {
-  if (!activeDocId || !activeStartTime || !activeDocUrl || !extractFileInfo(activeDocUrl)) return;
+  await initReady;
+  if (!activeDocId || !activeStartTime || !activeDocUrl || !extractFileInfo(activeDocUrl, urlRules)) return;
 
-  const elapsed = Math.round((Date.now() - activeStartTime) / 1000); // seconds
+  const elapsed = Math.round((Date.now() - activeStartTime) / 1000);
   if (elapsed < 1) {
     activeDocId = null;
     activeDocUrl = null;
@@ -106,7 +121,6 @@ async function handleTabChange(tabId) {
     const tab = await chrome.tabs.get(tabId);
     await processTab(tab);
   } catch {
-    // Tab may have been closed
     await flushActiveDoc();
   }
 }
@@ -117,8 +131,9 @@ async function isPaused() {
 }
 
 async function processTab(tab) {
+  await initReady;
   const url = tab.url || "";
-  const fileInfo = extractFileInfo(url);
+  const fileInfo = extractFileInfo(url, urlRules);
 
   if (fileInfo && fileInfo.id === activeDocId) {
     if (tab.title) activeDocTitle = tab.title;
@@ -172,7 +187,6 @@ function getNext1159PM() {
   return target.getTime();
 }
 
-// Only create alarms if they don't exist — avoids resetting timers on every SW restart.
 chrome.alarms.get(DAILY_EXPORT_ALARM, (alarm) => {
   if (!alarm) {
     chrome.alarms.create(DAILY_EXPORT_ALARM, {
@@ -184,7 +198,6 @@ chrome.alarms.get(DAILY_EXPORT_ALARM, (alarm) => {
 
 chrome.alarms.get(FLUSH_ALARM, (alarm) => {
   if (!alarm) {
-    // Flush and restart tracking every 5 minutes so SW termination loses at most 5 min of time.
     chrome.alarms.create(FLUSH_ALARM, { periodInMinutes: 5 });
   }
 });
@@ -195,7 +208,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     if (!(await isPaused())) {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab) {
-        const info = extractFileInfo(tab.url || "");
+        const info = extractFileInfo(tab.url || "", urlRules);
         if (info && tab.url) startTracking(info.id, tab.url, tab.title || tab.url, info.type);
       }
     }
@@ -213,7 +226,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 async function exportUnexportedDays() {
   const all = await chrome.storage.local.get(null);
   const dayKeys = Object.keys(all).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k));
-  dayKeys.sort(); // oldest first
+  dayKeys.sort();
 
   for (const dayKey of dayKeys) {
     if (dayKey === todayKey()) continue;
@@ -249,7 +262,6 @@ async function cleanupOldLogs() {
     console.log(`Auto Work Log: Cleaned up ${keysToRemove.length / 2} old day(s).`);
   }
 
-  // Warn if storage usage exceeds 80% of the 10 MB quota.
   const quotaBytes = chrome.storage.local.QUOTA_BYTES ?? 10 * 1024 * 1024;
   const bytesInUse = await chrome.storage.local.getBytesInUse(null);
   if (bytesInUse > quotaBytes * 0.8) {
@@ -314,7 +326,8 @@ async function exportToSheet(dateKey) {
   }
 
   const exportDay = dateKey || todayKey();
-  const { [exportDay]: log } = await chrome.storage.local.get(exportDay);
+  const dayData = await chrome.storage.local.get(exportDay);
+  const log = dayData[exportDay];
 
   if (!log || Object.keys(log).length === 0) {
     return { success: false, error: "No entries to export." };
@@ -325,7 +338,7 @@ async function exportToSheet(dateKey) {
     token = await getAuthToken();
   } catch (err) {
     console.error("Auto Work Log: Auth failed.", err);
-    return { success: false, error: "Authentication failed. Please sign in via the popup." };
+    return { success: false, error: "Authentication failed. Please sign in via settings." };
   }
 
   try {
@@ -397,13 +410,14 @@ chrome.runtime.onStartup.addListener(async () => {
   await updatePauseBadge();
 });
 
-// --- Message handling (from popup) ---
+// --- Message handling (from popup / options) ---
 
 async function restartTrackingIfActive() {
+  await initReady;
   if (await isPaused()) return;
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
-  const info = extractFileInfo(tab.url || "");
+  const info = extractFileInfo(tab.url || "", urlRules);
   if (info && tab.url) startTracking(info.id, tab.url, tab.title || tab.url, info.type);
 }
 

@@ -421,24 +421,12 @@ body {
   display: inline-flex;
 }
 
-.log-type {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
+.log-favicon {
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
+  border-radius: 2px;
 }
-
-/* Google Workspace product colors */
-.log-type[data-type="Doc"]     { background: #4285f4; color: #fff; }
-.log-type[data-type="Sheet"]   { background: #0f9d58; color: #fff; }
-.log-type[data-type="Slide"]   { background: #f4b400; color: #fff; }
-.log-type[data-type="Form"]    { background: #7627bb; color: #fff; }
-.log-type[data-type="Drawing"] { background: #db4437; color: #fff; }
-.log-type[data-type="Site"]    { background: #4285f4; color: #fff; }
-.log-type[data-type="Jam"]     { background: #f37c22; color: #fff; }
 
 .log-title {
   font-size: 13px;
@@ -502,6 +490,80 @@ body {
 .summary {
   padding-top: 4px;
   color: var(--md-on-surface-variant);
+}
+
+/* --- Options Page --- */
+body.options-page {
+  width: auto;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px;
+  min-height: auto;
+}
+
+body.options-page .container {
+  padding: 0;
+}
+
+.rule-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+
+.rule-row:last-child {
+  border-bottom: none;
+}
+
+.rule-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--md-primary);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.rule-label {
+  flex: 0 0 90px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-xs);
+  background: transparent;
+  color: var(--md-on-surface);
+  outline: none;
+}
+
+.rule-label:focus {
+  border-color: var(--md-primary);
+}
+
+.rule-pattern {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-family: "Consolas", "Menlo", monospace;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-xs);
+  background: transparent;
+  color: var(--md-on-surface);
+  outline: none;
+}
+
+.rule-pattern:focus {
+  border-color: var(--md-primary);
+}
+
+.rule-delete {
+  color: var(--md-error);
+}
+
+.rule-delete .material-symbols-outlined {
+  font-size: 18px;
 }
 
 /* --- Dark Mode --- */

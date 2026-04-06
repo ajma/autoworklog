@@ -32,7 +32,6 @@
       </button>
     </header>
 
-    <div id="main-view">
     <div class="filter-wrap">
       <input type="text" id="filter-input" class="filter-input" placeholder="Filter..." autocomplete="off">
       <button id="filter-clear" class="filter-clear" type="button" aria-label="Clear filter">
@@ -57,31 +56,6 @@
         </button>
       </div>
       <div id="export-status" class="status-msg"></div>
-    </section>
-    </div>
-
-    <!-- Settings view (hidden by default) -->
-    <section id="settings-section" class="card" style="display: none">
-      <div class="text-field">
-        <input type="text" id="target-doc-url" placeholder=" " autocomplete="off">
-        <label for="target-doc-url">Google Sheet URL</label>
-      </div>
-      <div class="text-field">
-        <input type="number" id="retention-days" placeholder=" " min="1" max="90" autocomplete="off">
-        <label for="retention-days">History retention (days)</label>
-      </div>
-      <div class="card-actions">
-        <button id="save-settings" class="btn btn-tonal">
-          <span class="material-symbols-outlined">save</span>
-          Save
-        </button>
-        <button id="sign-in-btn" class="btn btn-outlined">
-          <span class="material-symbols-outlined">login</span>
-          Sign in with Google
-        </button>
-      </div>
-      <div id="settings-status" class="status-msg"></div>
-      <div id="auth-status" class="status-msg"></div>
     </section>
   </div>
 

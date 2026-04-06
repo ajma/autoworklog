@@ -20,7 +20,7 @@ const archive = archiver("zip", { zlib: { level: 9 } });
 
 archive.pipe(output);
 
-const files = ["manifest.json", "background.js", "popup.html", "popup.js", "utils.js", "styles.css"];
+const files = ["manifest.json", "background.js", "popup.html", "popup.js", "options.html", "options.js", "utils.js", "styles.css"];
 for (const file of files) {
   archive.file(path.join(root, file), { name: file });
 }
