@@ -395,7 +395,7 @@ body {
 }
 
 .log-delete {
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 24px;
@@ -407,6 +407,7 @@ body {
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
+  visibility: hidden;
 }
 
 .log-delete .material-symbols-outlined {
@@ -418,7 +419,7 @@ body {
 }
 
 .log-entry:hover .log-delete {
-  display: inline-flex;
+  visibility: visible;
 }
 
 .log-favicon {
