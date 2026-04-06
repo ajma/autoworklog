@@ -1,0 +1,21 @@
+# Dev tooling
+.claude/
+.github/
+.editorconfig
+.prettierrc
+eslint.config.js
+jsconfig.json
+vitest.config.js
+scripts/
+tests/
+
+# Build artifacts
+dist/
+*.tgz
+*.pem
+*.crx
+*.zip
+
+# Docs
+README.md
+CLAUDE.md
