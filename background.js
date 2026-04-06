@@ -306,6 +306,7 @@ async function getSheetId(spreadsheetId, token) {
   return data.sheets[0].properties.sheetId;
 }
 
+/** @param {string} [dateKey] Defaults to today for manual export. */
 async function exportToSheet(dateKey) {
   const { targetDocId: spreadsheetId } = await chrome.storage.local.get("targetDocId");
   if (!spreadsheetId) {

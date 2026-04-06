@@ -1,27 +1,29 @@
 import { todayKey, formatDuration, escapeHtml } from './utils.js';
 
-const targetDocUrlInput = document.getElementById("target-doc-url");
-const retentionDaysInput = document.getElementById("retention-days");
-const saveSettingsBtn = document.getElementById("save-settings");
-const settingsStatus = document.getElementById("settings-status");
-const signInBtn = document.getElementById("sign-in-btn");
-const authStatus = document.getElementById("auth-status");
-const logDate = document.getElementById("log-date");
-const logList = document.getElementById("log-list");
-const logSummary = document.getElementById("log-summary");
-const exportBtn = document.getElementById("export-btn");
-const clearBtn = document.getElementById("clear-btn");
-const exportStatus = document.getElementById("export-status");
-const prevDayBtn = document.getElementById("prev-day-btn");
-const nextDayBtn = document.getElementById("next-day-btn");
-const filterInput = document.getElementById("filter-input");
-const settingsToggle = document.getElementById("settings-toggle");
-const settingsSection = document.getElementById("settings-section");
-const pauseToggle = document.getElementById("pause-toggle");
+const targetDocUrlInput = /** @type {HTMLInputElement} */ (document.getElementById("target-doc-url"));
+const retentionDaysInput = /** @type {HTMLInputElement} */ (document.getElementById("retention-days"));
+const saveSettingsBtn = /** @type {HTMLButtonElement} */ (document.getElementById("save-settings"));
+const settingsStatus = /** @type {HTMLElement} */ (document.getElementById("settings-status"));
+const signInBtn = /** @type {HTMLButtonElement} */ (document.getElementById("sign-in-btn"));
+const authStatus = /** @type {HTMLElement} */ (document.getElementById("auth-status"));
+const logDate = /** @type {HTMLElement} */ (document.getElementById("log-date"));
+const logList = /** @type {HTMLElement} */ (document.getElementById("log-list"));
+const logSummary = /** @type {HTMLElement} */ (document.getElementById("log-summary"));
+const exportBtn = /** @type {HTMLButtonElement} */ (document.getElementById("export-btn"));
+const clearBtn = /** @type {HTMLButtonElement} */ (document.getElementById("clear-btn"));
+const exportStatus = /** @type {HTMLElement} */ (document.getElementById("export-status"));
+const prevDayBtn = /** @type {HTMLButtonElement} */ (document.getElementById("prev-day-btn"));
+const nextDayBtn = /** @type {HTMLButtonElement} */ (document.getElementById("next-day-btn"));
+const filterInput = /** @type {HTMLInputElement} */ (document.getElementById("filter-input"));
+const filterClear = /** @type {HTMLButtonElement} */ (document.getElementById("filter-clear"));
+const settingsToggle = /** @type {HTMLButtonElement} */ (document.getElementById("settings-toggle"));
+const settingsSection = /** @type {HTMLElement} */ (document.getElementById("settings-section"));
+const mainView = /** @type {HTMLElement} */ (document.getElementById("main-view"));
+const pauseToggle = /** @type {HTMLButtonElement} */ (document.getElementById("pause-toggle"));
 
 const GOOGLE_SHEETS_PATTERN = /^https:\/\/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/;
 
-let availableDays = [];
+let availableDays = /** @type {string[]} */ ([]);
 let currentDayIndex = 0;
 let isSignedIn = false;
 
@@ -78,10 +80,10 @@ function updateAuthUI(signedIn) {
 // --- Load saved settings ---
 async function loadSettings() {
   const data = await chrome.storage.local.get(["targetDocId", "targetDocUrl", "retentionDays"]);
-  if (data.targetDocUrl) {
-    targetDocUrlInput.value = data.targetDocUrl;
+  if (data["targetDocUrl"]) {
+    targetDocUrlInput.value = data["targetDocUrl"];
   }
-  retentionDaysInput.value = data.retentionDays || 7;
+  retentionDaysInput.value = data["retentionDays"] || 7;
 
   chrome.identity.getAuthToken({ interactive: false }, (token) => {
     void chrome.runtime.lastError;
@@ -107,10 +109,11 @@ saveSettingsBtn.addEventListener("click", async () => {
     return;
   }
 
+  /** @type {Record<string, any>} */
   const settings = { retentionDays: retention };
   if (sheetId) {
-    settings.targetDocId = sheetId;
-    settings.targetDocUrl = url;
+    settings["targetDocId"] = sheetId;
+    settings["targetDocUrl"] = url;
   }
 
   await chrome.storage.local.set(settings);
@@ -221,15 +224,18 @@ async function loadLog() {
 
   logList.innerHTML = html;
 
-  logList.querySelectorAll(".log-title").forEach(link => {
+  logList.querySelectorAll(".log-title").forEach((el) => {
+    const link = /** @type {HTMLAnchorElement} */ (el);
     link.addEventListener("click", async (e) => {
       e.preventDefault();
-      const url = link.dataset.url;
+      const url = link.dataset["url"] || "";
       const tabs = await chrome.tabs.query({});
       const existing = tabs.find(t => t.url && t.url.startsWith(url.split("?")[0]));
-      if (existing) {
+      if (existing && existing.id !== undefined) {
         chrome.tabs.update(existing.id, { active: true });
-        chrome.windows.update(existing.windowId, { focused: true });
+        if (existing.windowId !== undefined) {
+          chrome.windows.update(existing.windowId, { focused: true });
+        }
       } else {
         chrome.tabs.create({ url });
       }
@@ -237,10 +243,11 @@ async function loadLog() {
     });
   });
 
-  logList.querySelectorAll(".log-delete").forEach(btn => {
+  logList.querySelectorAll(".log-delete").forEach((el) => {
+    const btn = /** @type {HTMLButtonElement} */ (el);
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const docId = btn.dataset.docId;
+      const docId = btn.dataset["docId"] || "";
       sendMsg({ action: "deleteEntry", date: currentDateKey(), docId }).then(() => loadLog());
     });
   });
@@ -250,13 +257,13 @@ async function loadLog() {
 }
 
 // --- Filter ---
-const filterClear = document.getElementById("filter-clear");
-
 function applyFilter() {
   const query = filterInput.value.toLowerCase();
   filterClear.style.display = query.length > 0 ? "inline-flex" : "none";
-  logList.querySelectorAll(".log-entry").forEach(entry => {
-    const title = entry.querySelector(".log-title").textContent.toLowerCase();
+  logList.querySelectorAll(".log-entry").forEach((el) => {
+    const entry = /** @type {HTMLElement} */ (el);
+    const titleEl = entry.querySelector(".log-title");
+    const title = titleEl ? (titleEl.textContent || "").toLowerCase() : "";
     entry.style.display = title.includes(query) ? "" : "none";
   });
 }
@@ -328,8 +335,6 @@ clearBtn.addEventListener("click", async () => {
 });
 
 // --- Settings toggle ---
-const mainView = document.getElementById("main-view");
-
 settingsToggle.addEventListener("click", () => {
   const showingSettings = settingsSection.style.display !== "none";
   settingsSection.style.display = showingSettings ? "none" : "flex";
@@ -341,7 +346,8 @@ async function updatePauseUI() {
   const { trackingPaused } = await chrome.storage.local.get("trackingPaused");
   const paused = !!trackingPaused;
   pauseToggle.title = paused ? "Resume tracking" : "Pause tracking";
-  pauseToggle.querySelector(".material-symbols-outlined").textContent = paused ? "play_arrow" : "pause";
+  const icon = pauseToggle.querySelector(".material-symbols-outlined");
+  if (icon) icon.textContent = paused ? "play_arrow" : "pause";
 }
 
 pauseToggle.addEventListener("click", async () => {

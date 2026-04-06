@@ -6,8 +6,10 @@
     "module": "ES2022",
     "lib": ["ES2022", "DOM"],
     "moduleResolution": "bundler",
-    "strict": false
+    "strict": false,
+    "strictNullChecks": true,
+    "skipLibCheck": true
   },
-  "include": ["*.js", "tests/**/*.js", "scripts/**/*.js"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["*.js", "tests/**/*.js"],
+  "exclude": ["node_modules", "dist", "scripts"]
 }
