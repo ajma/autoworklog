@@ -14,5 +14,6 @@ Desktop.ini
 *.crx
 *.zip
 
-# Node (if added later)
+# Node
 node_modules/
+dist/

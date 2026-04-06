@@ -12,7 +12,6 @@
   "host_permissions": [
     "https://docs.google.com/*",
     "https://sites.google.com/*",
-    "https://jamboard.google.com/*",
     "https://sheets.googleapis.com/*"
   ],
   "oauth2": {
@@ -22,7 +21,8 @@
     ]
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "action": {
     "default_popup": "popup.html",

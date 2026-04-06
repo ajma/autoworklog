@@ -1,3 +1,5 @@
+import { todayKey, formatDuration, escapeHtml } from './utils.js';
+
 const targetDocUrlInput = document.getElementById("target-doc-url");
 const retentionDaysInput = document.getElementById("retention-days");
 const saveSettingsBtn = document.getElementById("save-settings");
@@ -20,12 +22,26 @@ const pauseToggle = document.getElementById("pause-toggle");
 const GOOGLE_SHEETS_PATTERN = /^https:\/\/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/;
 
 let availableDays = [];
-let currentDayIndex = 0; // 0 = most recent (today)
+let currentDayIndex = 0;
 let isSignedIn = false;
 
 function extractSheetId(url) {
   const match = url.match(GOOGLE_SHEETS_PATTERN);
   return match ? match[1] : null;
+}
+
+// Sends a message to the background service worker. Returns null if the SW is unavailable.
+function sendMsg(payload) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(payload, (resp) => {
+      if (chrome.runtime.lastError) {
+        console.warn("Auto Work Log: SW unavailable —", chrome.runtime.lastError.message);
+        resolve(null);
+        return;
+      }
+      resolve(resp);
+    });
+  });
 }
 
 // Inline SVGs matching Google Workspace product icons
@@ -36,7 +52,6 @@ const TYPE_SVGS = {
   Form: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="#fff" d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm8 1.5L19.5 9H14V3.5zM8 12a1.25 1.25 0 1 1 0 2.5A1.25 1.25 0 0 1 8 12zm0 3.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5zM11 12.5h5.5V14H11v-1.5zm0 3.5h5.5v1.5H11V16z"/></svg>`,
   Drawing: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="#fff" d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm4 9l3-4 2.5 3 3.5-5L19 15H7z"/></svg>`,
   Site: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="#fff" d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm2 0v2h14V5H5zm0 4v10h5V9H5zm7 0v10h7V9h-7z"/></svg>`,
-  Jam: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="#fff" d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm9 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/></svg>`,
 };
 
 function currentDateKey() {
@@ -69,7 +84,6 @@ async function loadSettings() {
   retentionDaysInput.value = data.retentionDays || 7;
 
   chrome.identity.getAuthToken({ interactive: false }, (token) => {
-    // Must read lastError to prevent Chrome from logging it as uncaught
     void chrome.runtime.lastError;
     updateAuthUI(!!token);
   });
@@ -108,10 +122,8 @@ saveSettingsBtn.addEventListener("click", async () => {
 // --- Sign in / Sign out ---
 signInBtn.addEventListener("click", () => {
   if (isSignedIn) {
-    // Sign out: revoke token so it doesn't auto-restore
     chrome.identity.getAuthToken({ interactive: false }, (token) => {
       if (token) {
-        // Revoke the token server-side
         fetch(`https://accounts.google.com/o/oauth2/revoke?token=${token}`);
         chrome.identity.removeCachedAuthToken({ token }, () => {
           chrome.identity.clearAllCachedAuthTokens(() => {
@@ -121,11 +133,11 @@ signInBtn.addEventListener("click", () => {
       }
     });
   } else {
-    chrome.runtime.sendMessage({ action: "signIn" }, (resp) => {
+    sendMsg({ action: "signIn" }).then((resp) => {
       if (resp && resp.success) {
         updateAuthUI(true);
       } else {
-        authStatus.textContent = "Sign-in failed";
+        authStatus.textContent = resp ? "Sign-in failed" : "Extension is restarting — try again.";
         authStatus.className = "status-msg error";
       }
     });
@@ -134,17 +146,12 @@ signInBtn.addEventListener("click", () => {
 
 // --- Day navigation ---
 async function loadAvailableDays() {
-  return new Promise((resolve) => {
-    chrome.runtime.sendMessage({ action: "getAvailableDays" }, (resp) => {
-      availableDays = resp ? resp.days : [];
-      // Ensure today is in the list
-      const today = todayKey();
-      if (!availableDays.includes(today)) {
-        availableDays.unshift(today);
-      }
-      resolve();
-    });
-  });
+  const resp = await sendMsg({ action: "getAvailableDays" });
+  availableDays = resp ? resp.days : [];
+  const today = todayKey();
+  if (!availableDays.includes(today)) {
+    availableDays.unshift(today);
+  }
 }
 
 function updateNavButtons() {
@@ -175,70 +182,71 @@ async function loadLog() {
   logDate.textContent = isToday ? `Today (${shortDate})` : shortDate;
   updateNavButtons();
 
-  // Show/hide clear button only for today
   clearBtn.style.display = isToday ? "" : "none";
 
   const action = isToday ? "getLog" : "getLogForDate";
   const msgPayload = isToday ? { action } : { action, date: dateKey };
 
-  chrome.runtime.sendMessage(msgPayload, (resp) => {
-    if (!resp || !resp.log || Object.keys(resp.log).length === 0) {
-      logList.innerHTML = '<p class="empty">No Workspace files visited.</p>';
-      logSummary.textContent = "";
-      return;
-    }
+  const resp = await sendMsg(msgPayload);
 
-    const entries = Object.entries(resp.log).filter(([, e]) => e.url).sort((a, b) => b[1].totalSeconds - a[1].totalSeconds);
-    let html = "";
+  if (!resp) {
+    logList.innerHTML = '<p class="empty">Extension is restarting — please try again.</p>';
+    logSummary.textContent = "";
+    return;
+  }
 
-    for (const [docId, entry] of entries) {
-      const title = entry.title || "Untitled";
-      const displayTitle = title.length > 60 ? title.slice(0, 57) + "..." : title;
-      const type = entry.type || "Doc";
-      html += `
-        <div class="log-entry">
-          <span class="log-type" data-type="${escapeHtml(type)}" title="${escapeHtml(type)}">${TYPE_SVGS[type] || TYPE_SVGS.Doc}</span>
-          <a class="log-title" href="${escapeHtml(entry.url)}" data-url="${escapeHtml(entry.url)}" title="${escapeHtml(title)}">${escapeHtml(displayTitle)}</a>
-          <span class="log-time"><span class="material-symbols-outlined">timer</span>${formatDuration(entry.totalSeconds)}</span>
-          <span class="log-visits"><span class="material-symbols-outlined">visibility</span>${entry.visits}</span>
-          <button class="log-delete" data-doc-id="${escapeHtml(docId)}" title="Remove"><span class="material-symbols-outlined">delete</span></button>
-        </div>
-      `;
-    }
+  if (!resp.log || Object.keys(resp.log).length === 0) {
+    logList.innerHTML = '<p class="empty">No Workspace files visited.</p>';
+    logSummary.textContent = "";
+    return;
+  }
 
-    logList.innerHTML = html;
+  const entries = Object.entries(resp.log).filter(([, e]) => e.url).sort((a, b) => b[1].totalSeconds - a[1].totalSeconds);
+  let html = "";
 
-    // Click handler: focus existing tab or open new one
-    logList.querySelectorAll(".log-title").forEach(link => {
-      link.addEventListener("click", async (e) => {
-        e.preventDefault();
-        const url = link.dataset.url;
-        const tabs = await chrome.tabs.query({});
-        const existing = tabs.find(t => t.url && t.url.startsWith(url.split("?")[0]));
-        if (existing) {
-          chrome.tabs.update(existing.id, { active: true });
-          chrome.windows.update(existing.windowId, { focused: true });
-        } else {
-          chrome.tabs.create({ url });
-        }
-        window.close();
-      });
+  for (const [docId, entry] of entries) {
+    const title = entry.title || "Untitled";
+    const displayTitle = title.length > 60 ? title.slice(0, 57) + "..." : title;
+    const type = entry.type || "Doc";
+    html += `
+      <div class="log-entry">
+        <span class="log-type" data-type="${escapeHtml(type)}" title="${escapeHtml(type)}">${TYPE_SVGS[type] || TYPE_SVGS.Doc}</span>
+        <a class="log-title" href="${escapeHtml(entry.url)}" data-url="${escapeHtml(entry.url)}" title="${escapeHtml(title)}">${escapeHtml(displayTitle)}</a>
+        <span class="log-time"><span class="material-symbols-outlined">timer</span>${formatDuration(entry.totalSeconds)}</span>
+        <span class="log-visits"><span class="material-symbols-outlined">visibility</span>${entry.visits}</span>
+        <button class="log-delete" data-doc-id="${escapeHtml(docId)}" title="Remove"><span class="material-symbols-outlined">delete</span></button>
+      </div>
+    `;
+  }
+
+  logList.innerHTML = html;
+
+  logList.querySelectorAll(".log-title").forEach(link => {
+    link.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const url = link.dataset.url;
+      const tabs = await chrome.tabs.query({});
+      const existing = tabs.find(t => t.url && t.url.startsWith(url.split("?")[0]));
+      if (existing) {
+        chrome.tabs.update(existing.id, { active: true });
+        chrome.windows.update(existing.windowId, { focused: true });
+      } else {
+        chrome.tabs.create({ url });
+      }
+      window.close();
     });
-
-    // Delete button handlers
-    logList.querySelectorAll(".log-delete").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const docId = btn.dataset.docId;
-        chrome.runtime.sendMessage({ action: "deleteEntry", date: currentDateKey(), docId }, () => {
-          loadLog();
-        });
-      });
-    });
-
-    const totalSeconds = entries.reduce((sum, e) => sum + e[1].totalSeconds, 0);
-    logSummary.textContent = `${entries.length} file${entries.length !== 1 ? "s" : ""} — ${formatDuration(totalSeconds)} total`;
   });
+
+  logList.querySelectorAll(".log-delete").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const docId = btn.dataset.docId;
+      sendMsg({ action: "deleteEntry", date: currentDateKey(), docId }).then(() => loadLog());
+    });
+  });
+
+  const totalSeconds = entries.reduce((sum, e) => sum + e[1].totalSeconds, 0);
+  logSummary.textContent = `${entries.length} file${entries.length !== 1 ? "s" : ""} — ${formatDuration(totalSeconds)} total`;
 }
 
 // --- Filter ---
@@ -262,65 +270,61 @@ filterClear.addEventListener("click", () => {
 });
 
 // --- Export ---
-exportBtn.addEventListener("click", () => {
+exportBtn.addEventListener("click", async () => {
   if (isSignedIn) {
-    // Export to Google Sheet
     exportBtn.disabled = true;
     exportStatus.textContent = "Exporting...";
     exportStatus.className = "status-msg";
 
-    chrome.runtime.sendMessage({ action: "exportNow", date: currentDateKey() }, (resp) => {
-      exportBtn.disabled = false;
-      if (resp && resp.success) {
-        exportStatus.textContent = "Exported successfully!";
-        exportStatus.className = "status-msg success";
-      } else {
-        exportStatus.textContent = resp ? resp.error : "Export failed.";
-        exportStatus.className = "status-msg error";
-      }
-      setTimeout(() => { exportStatus.textContent = ""; }, 4000);
-    });
+    const resp = await sendMsg({ action: "exportNow", date: currentDateKey() });
+    exportBtn.disabled = false;
+    if (!resp) {
+      exportStatus.textContent = "Extension is restarting — try again.";
+      exportStatus.className = "status-msg error";
+    } else if (resp.success) {
+      exportStatus.textContent = "Exported successfully!";
+      exportStatus.className = "status-msg success";
+    } else {
+      exportStatus.textContent = resp.error;
+      exportStatus.className = "status-msg error";
+    }
+    setTimeout(() => { exportStatus.textContent = ""; }, 4000);
   } else {
-    // Copy as markdown
     const dateKey = currentDateKey();
     const action = dateKey === todayKey() ? "getLog" : "getLogForDate";
     const msg = dateKey === todayKey() ? { action } : { action, date: dateKey };
 
-    chrome.runtime.sendMessage(msg, (resp) => {
-      if (!resp || !resp.log || Object.keys(resp.log).length === 0) {
-        exportStatus.textContent = "No entries to copy.";
-        exportStatus.className = "status-msg error";
-        setTimeout(() => { exportStatus.textContent = ""; }, 3000);
-        return;
-      }
-
-      const entries = Object.values(resp.log).sort((a, b) => b.totalSeconds - a.totalSeconds);
-      const rows = entries.map(entry => {
-        const title = entry.title || "Untitled";
-        const type = entry.type || "Doc";
-        return [dateKey, type, title, entry.url, formatDuration(entry.totalSeconds), entry.visits, entry.totalSeconds].join("\t");
-      });
-      const tsv = rows.join("\n");
-
-      navigator.clipboard.writeText(tsv).then(() => {
-        exportStatus.textContent = "Copied to clipboard!";
-        exportStatus.className = "status-msg success";
-      }).catch(() => {
-        exportStatus.textContent = "Failed to copy.";
-        exportStatus.className = "status-msg error";
-      });
+    const resp = await sendMsg(msg);
+    if (!resp || !resp.log || Object.keys(resp.log).length === 0) {
+      exportStatus.textContent = resp ? "No entries to copy." : "Extension is restarting — try again.";
+      exportStatus.className = "status-msg error";
       setTimeout(() => { exportStatus.textContent = ""; }, 3000);
+      return;
+    }
+
+    const entries = Object.values(resp.log).sort((a, b) => b.totalSeconds - a.totalSeconds);
+    const rows = entries.map(entry => {
+      const title = entry.title || "Untitled";
+      const type = entry.type || "Doc";
+      return [dateKey, type, title, entry.url, formatDuration(entry.totalSeconds), entry.visits, entry.totalSeconds].join("\t");
     });
+
+    navigator.clipboard.writeText(rows.join("\n")).then(() => {
+      exportStatus.textContent = "Copied to clipboard!";
+      exportStatus.className = "status-msg success";
+    }).catch(() => {
+      exportStatus.textContent = "Failed to copy.";
+      exportStatus.className = "status-msg error";
+    });
+    setTimeout(() => { exportStatus.textContent = ""; }, 3000);
   }
 });
 
 // --- Clear ---
-clearBtn.addEventListener("click", () => {
+clearBtn.addEventListener("click", async () => {
   if (!confirm("Clear today's log? This cannot be undone.")) return;
-
-  chrome.runtime.sendMessage({ action: "clearLog" }, () => {
-    loadLog();
-  });
+  await sendMsg({ action: "clearLog" });
+  loadLog();
 });
 
 // --- Settings toggle ---
@@ -345,7 +349,7 @@ pauseToggle.addEventListener("click", async () => {
   const newState = !trackingPaused;
   await chrome.storage.local.set({ trackingPaused: newState });
   if (newState) {
-    chrome.runtime.sendMessage({ action: "flushActive" });
+    sendMsg({ action: "flushActive" });
   }
   updatePauseUI();
 });

@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "checkJs": true,
+    "noEmit": true,
+    "target": "ES2022",
+    "module": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "moduleResolution": "bundler",
+    "strict": false
+  },
+  "include": ["*.js", "tests/**/*.js", "scripts/**/*.js"],
+  "exclude": ["node_modules", "dist"]
+}
