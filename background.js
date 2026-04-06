@@ -75,7 +75,8 @@ async function flushActiveDoc() {
   if (!activeDocId || !activeStartTime || !activeDocUrl || !extractFileInfo(activeDocUrl, urlRules)) return;
 
   const elapsed = Math.round((Date.now() - activeStartTime) / 1000);
-  if (elapsed < 1) {
+  const { minVisitSeconds } = await chrome.storage.local.get("minVisitSeconds");
+  if (elapsed < (minVisitSeconds ?? 1)) {
     activeDocId = null;
     activeDocUrl = null;
     activeDocTitle = null;

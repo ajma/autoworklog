@@ -492,6 +492,16 @@ body {
   color: var(--md-on-surface-variant);
 }
 
+/* --- Field Row --- */
+.field-row {
+  display: flex;
+  gap: 12px;
+}
+
+.field-row > .text-field {
+  flex: 1;
+}
+
 /* --- Options Page --- */
 body.options-page {
   width: auto;

@@ -21,9 +21,15 @@
         <input type="text" id="target-doc-url" placeholder=" " autocomplete="off">
         <label for="target-doc-url">Google Sheet URL</label>
       </div>
-      <div class="text-field">
-        <input type="number" id="retention-days" placeholder=" " min="1" max="90" autocomplete="off">
-        <label for="retention-days">History retention (days)</label>
+      <div class="field-row">
+        <div class="text-field">
+          <input type="number" id="retention-days" placeholder=" " min="1" max="90" autocomplete="off">
+          <label for="retention-days">History retention (days)</label>
+        </div>
+        <div class="text-field">
+          <input type="number" id="min-visit-seconds" placeholder=" " min="0" max="3600" autocomplete="off">
+          <label for="min-visit-seconds">Minimum visit duration (seconds)</label>
+        </div>
       </div>
       <div class="card-actions">
         <button id="sign-in-btn" class="btn btn-outlined">

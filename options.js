@@ -2,6 +2,7 @@ import { DEFAULT_RULES } from './utils.js';
 
 const targetDocUrlInput = /** @type {HTMLInputElement} */ (document.getElementById("target-doc-url"));
 const retentionDaysInput = /** @type {HTMLInputElement} */ (document.getElementById("retention-days"));
+const minVisitSecondsInput = /** @type {HTMLInputElement} */ (document.getElementById("min-visit-seconds"));
 const signInBtn = /** @type {HTMLButtonElement} */ (document.getElementById("sign-in-btn"));
 const authStatus = /** @type {HTMLElement} */ (document.getElementById("auth-status"));
 const rulesList = /** @type {HTMLElement} */ (document.getElementById("rules-list"));
@@ -155,6 +156,14 @@ saveBtn.addEventListener("click", async () => {
     return;
   }
 
+  // Validate min visit seconds
+  const minVisit = parseInt(minVisitSecondsInput.value, 10);
+  if (isNaN(minVisit) || minVisit < 0) {
+    saveStatus.textContent = "Minimum visit duration must be 0 or more.";
+    saveStatus.className = "status-msg error";
+    return;
+  }
+
   // Validate rules: each must have a label and valid regex
   let hasError = false;
   const patternInputs = rulesList.querySelectorAll(".rule-pattern");
@@ -189,7 +198,7 @@ saveBtn.addEventListener("click", async () => {
   }
 
   /** @type {Record<string, any>} */
-  const settings = { retentionDays: retention, urlRules: rules };
+  const settings = { retentionDays: retention, minVisitSeconds: minVisit, urlRules: rules };
   if (sheetId) {
     settings["targetDocId"] = sheetId;
     settings["targetDocUrl"] = url;
@@ -202,7 +211,7 @@ saveBtn.addEventListener("click", async () => {
 // --- Import / Export ---
 
 exportSettingsBtn.addEventListener("click", async () => {
-  const data = await chrome.storage.local.get(["targetDocUrl", "retentionDays", "urlRules"]);
+  const data = await chrome.storage.local.get(["targetDocUrl", "retentionDays", "minVisitSeconds", "urlRules"]);
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -228,6 +237,7 @@ importFile.addEventListener("change", () => {
       // Populate form fields from imported data
       if (data.targetDocUrl) targetDocUrlInput.value = data.targetDocUrl;
       if (data.retentionDays) retentionDaysInput.value = String(data.retentionDays);
+      if (data.minVisitSeconds != null) minVisitSecondsInput.value = String(data.minVisitSeconds);
       if (Array.isArray(data.urlRules)) {
         rules = data.urlRules;
         renderRules();
@@ -248,9 +258,10 @@ importFile.addEventListener("change", () => {
 // --- Init ---
 
 (async () => {
-  const data = await chrome.storage.local.get(["targetDocUrl", "retentionDays", "urlRules"]);
+  const data = await chrome.storage.local.get(["targetDocUrl", "retentionDays", "minVisitSeconds", "urlRules"]);
   if (data["targetDocUrl"]) targetDocUrlInput.value = data["targetDocUrl"];
   retentionDaysInput.value = data["retentionDays"] || 7;
+  minVisitSecondsInput.value = data["minVisitSeconds"] ?? 1;
 
   // Load rules — use defaults if none exist yet
   rules = data["urlRules"] || DEFAULT_RULES.map(r => ({ ...r }));
