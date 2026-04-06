@@ -382,6 +382,7 @@ body {
 
 /* --- Log Entries --- */
 .log-entry {
+  position: relative;
   padding: 8px 12px;
   background: var(--md-surface-container-low);
   border-radius: var(--md-shape-sm);
@@ -395,6 +396,8 @@ body {
 }
 
 .log-delete {
+  position: absolute;
+  right: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -406,8 +409,7 @@ body {
   color: var(--md-error);
   cursor: pointer;
   padding: 0;
-  flex-shrink: 0;
-  visibility: hidden;
+  opacity: 0;
 }
 
 .log-delete .material-symbols-outlined {
@@ -415,11 +417,12 @@ body {
 }
 
 .log-delete:hover {
+  opacity: 1;
   background: var(--md-error-container);
 }
 
-.log-entry:hover .log-delete {
-  visibility: visible;
+.log-visits:has(+ .log-delete:hover) {
+  visibility: hidden;
 }
 
 .log-favicon {
@@ -537,7 +540,7 @@ body.options-page .container {
 }
 
 .rule-label {
-  flex: 0 0 90px;
+  flex: 0 0 72px;
   padding: 8px 10px;
   font-size: 13px;
   font-family: inherit;

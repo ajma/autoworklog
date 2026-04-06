@@ -180,7 +180,9 @@ function applyFilter() {
     const entry = /** @type {HTMLElement} */ (el);
     const titleEl = entry.querySelector(".log-title");
     const title = titleEl ? (titleEl.textContent || "").toLowerCase() : "";
-    entry.style.display = title.includes(query) ? "" : "none";
+    const faviconEl = entry.querySelector(".log-favicon");
+    const type = faviconEl ? (faviconEl.getAttribute("alt") || "").toLowerCase() : "";
+    entry.style.display = (title.includes(query) || type.includes(query)) ? "" : "none";
   });
 }
 
