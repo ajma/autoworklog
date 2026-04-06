@@ -28,15 +28,6 @@ function extractSheetId(url) {
   return match ? match[1] : null;
 }
 
-function formatDuration(totalSeconds) {
-  const hrs = Math.floor(totalSeconds / 3600);
-  const mins = Math.floor((totalSeconds % 3600) / 60);
-  const secs = totalSeconds % 60;
-  if (hrs > 0) return `${hrs}h ${mins}m ${secs}s`;
-  if (mins > 0) return `${mins}m ${secs}s`;
-  return `${secs}s`;
-}
-
 // Inline SVGs matching Google Workspace product icons
 const TYPE_SVGS = {
   Doc: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="#fff" d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm8 1.5L19.5 9H14V3.5zM7 13h10v1.5H7V13zm0 3.5h7v1.5H7v-1.5zm0-7h4V11H7V9.5z"/></svg>`,
@@ -47,11 +38,6 @@ const TYPE_SVGS = {
   Site: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="#fff" d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm2 0v2h14V5H5zm0 4v10h5V9H5zm7 0v10h7V9h-7z"/></svg>`,
   Jam: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="#fff" d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm9 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/></svg>`,
 };
-
-function todayKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 function currentDateKey() {
   return availableDays[currentDayIndex] || todayKey();
@@ -211,11 +197,11 @@ async function loadLog() {
       const type = entry.type || "Doc";
       html += `
         <div class="log-entry">
-          <span class="log-type" data-type="${type}" title="${type}">${TYPE_SVGS[type] || TYPE_SVGS.Doc}</span>
-          <a class="log-title" href="${entry.url}" data-url="${entry.url}" title="${title}">${displayTitle}</a>
+          <span class="log-type" data-type="${escapeHtml(type)}" title="${escapeHtml(type)}">${TYPE_SVGS[type] || TYPE_SVGS.Doc}</span>
+          <a class="log-title" href="${escapeHtml(entry.url)}" data-url="${escapeHtml(entry.url)}" title="${escapeHtml(title)}">${escapeHtml(displayTitle)}</a>
           <span class="log-time"><span class="material-symbols-outlined">timer</span>${formatDuration(entry.totalSeconds)}</span>
           <span class="log-visits"><span class="material-symbols-outlined">visibility</span>${entry.visits}</span>
-          <button class="log-delete" data-doc-id="${docId}" title="Remove"><span class="material-symbols-outlined">delete</span></button>
+          <button class="log-delete" data-doc-id="${escapeHtml(docId)}" title="Remove"><span class="material-symbols-outlined">delete</span></button>
         </div>
       `;
     }
@@ -283,7 +269,7 @@ exportBtn.addEventListener("click", () => {
     exportStatus.textContent = "Exporting...";
     exportStatus.className = "status-msg";
 
-    chrome.runtime.sendMessage({ action: "exportNow" }, (resp) => {
+    chrome.runtime.sendMessage({ action: "exportNow", date: currentDateKey() }, (resp) => {
       exportBtn.disabled = false;
       if (resp && resp.success) {
         exportStatus.textContent = "Exported successfully!";

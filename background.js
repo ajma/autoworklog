@@ -1,3 +1,5 @@
+importScripts('utils.js');
+
 // --- Constants ---
 // Matches Docs, Sheets, Slides, Forms, Drawings, Sites, and Jamboard
 const WORKSPACE_PATTERN = /^https:\/\/docs\.google\.com\/(document|spreadsheets|presentation|forms|drawings)\/d\/([a-zA-Z0-9_-]+)/;
@@ -12,6 +14,7 @@ const WORKSPACE_TYPE_MAP = {
   drawings: "Drawing",
 };
 const DAILY_EXPORT_ALARM = "daily-export";
+const FLUSH_ALARM = "periodic-flush";
 
 // --- State ---
 let activeDocId = null;
@@ -19,6 +22,19 @@ let activeDocUrl = null;
 let activeDocTitle = null;
 let activeDocType = null;
 let activeStartTime = null;
+
+// Restore active tracking state after service worker restart.
+// chrome.storage.session survives SW termination but clears on browser restart.
+(async () => {
+  const { activeSession } = await chrome.storage.session.get("activeSession");
+  if (activeSession) {
+    activeDocId = activeSession.docId;
+    activeDocUrl = activeSession.url;
+    activeDocTitle = activeSession.title;
+    activeDocType = activeSession.type;
+    activeStartTime = activeSession.startTime;
+  }
+})();
 
 // --- Pause badge ---
 
@@ -40,11 +56,6 @@ chrome.storage.onChanged.addListener((changes) => {
 });
 
 // --- Helpers ---
-
-function todayKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 function extractFileInfo(url) {
   let match = url.match(WORKSPACE_PATTERN);
@@ -80,6 +91,7 @@ async function flushActiveDoc() {
     activeDocTitle = null;
     activeDocType = null;
     activeStartTime = null;
+    chrome.storage.session.remove("activeSession");
     return;
   }
 
@@ -99,6 +111,7 @@ async function flushActiveDoc() {
   activeDocTitle = null;
   activeDocType = null;
   activeStartTime = null;
+  chrome.storage.session.remove("activeSession");
 }
 
 // Start tracking a new doc.
@@ -108,6 +121,7 @@ function startTracking(docId, url, title, type) {
   activeDocTitle = title;
   activeDocType = type;
   activeStartTime = Date.now();
+  chrome.storage.session.set({ activeSession: { docId, url, title, type, startTime: activeStartTime } });
 }
 
 // --- Tab event listeners ---
@@ -179,26 +193,49 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
   }
 });
 
-// --- Daily alarm for auto-export ---
+// --- Alarms ---
 
-chrome.alarms.create(DAILY_EXPORT_ALARM, {
-  // Fire at next midnight, then every 24 hours
-  when: getNextMidnight(),
-  periodInMinutes: 24 * 60,
-});
-
-function getNextMidnight() {
+function getNext1159PM() {
   const now = new Date();
-  const midnight = new Date(now);
-  midnight.setHours(23, 59, 0, 0);
-  // If it's already past 11:59 PM, set for tomorrow
-  if (midnight <= now) {
-    midnight.setDate(midnight.getDate() + 1);
+  const target = new Date(now);
+  target.setHours(23, 59, 0, 0);
+  if (target <= now) {
+    target.setDate(target.getDate() + 1);
   }
-  return midnight.getTime();
+  return target.getTime();
 }
 
+// Only create alarms if they don't exist — avoids resetting timers on every SW restart.
+chrome.alarms.get(DAILY_EXPORT_ALARM, (alarm) => {
+  if (!alarm) {
+    chrome.alarms.create(DAILY_EXPORT_ALARM, {
+      when: getNext1159PM(),
+      periodInMinutes: 24 * 60,
+    });
+  }
+});
+
+chrome.alarms.get(FLUSH_ALARM, (alarm) => {
+  if (!alarm) {
+    // Flush and restart tracking every 5 minutes so SW termination loses at most 5 min of time.
+    chrome.alarms.create(FLUSH_ALARM, { periodInMinutes: 5 });
+  }
+});
+
 chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === FLUSH_ALARM) {
+    await flushActiveDoc();
+    // Restart tracking so accumulated time is not lost if the SW is killed before next flush.
+    if (!(await isPaused())) {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab) {
+        const info = extractFileInfo(tab.url || "");
+        if (info && tab.url) startTracking(info.id, tab.url, tab.title || tab.url, info.type);
+      }
+    }
+    return;
+  }
+
   if (alarm.name === DAILY_EXPORT_ALARM) {
     await flushActiveDoc();
     // Export any unexported days (handles sleep/missed alarms)
@@ -263,15 +300,6 @@ async function getAuthToken() {
       }
     });
   });
-}
-
-function formatDuration(totalSeconds) {
-  const hrs = Math.floor(totalSeconds / 3600);
-  const mins = Math.floor((totalSeconds % 3600) / 60);
-  const secs = totalSeconds % 60;
-  if (hrs > 0) return `${hrs}h ${mins}m ${secs}s`;
-  if (mins > 0) return `${mins}m ${secs}s`;
-  return `${secs}s`;
 }
 
 // Ensure the header row exists in the sheet.
@@ -439,7 +467,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "exportNow") {
     (async () => {
       await flushActiveDoc();
-      const result = await exportToGoogleDoc();
+      const result = await exportToGoogleDoc(message.date);
       // Re-start tracking if not paused
       if (!(await isPaused())) {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -503,6 +531,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         activeDocTitle = null;
         activeDocType = null;
         activeStartTime = null;
+        chrome.storage.session.remove("activeSession");
       }
       const result = await chrome.storage.local.get(date);
       const log = result[date];
@@ -531,6 +560,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       activeDocTitle = null;
       activeDocType = null;
       activeStartTime = null;
+      chrome.storage.session.remove("activeSession");
       await chrome.storage.local.remove(todayKey());
       sendResponse({ success: true });
     })();
