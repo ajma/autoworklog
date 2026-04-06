@@ -9,6 +9,10 @@ const addRuleBtn = /** @type {HTMLButtonElement} */ (document.getElementById("ad
 const resetRulesBtn = /** @type {HTMLButtonElement} */ (document.getElementById("reset-rules-btn"));
 const saveBtn = /** @type {HTMLButtonElement} */ (document.getElementById("save-btn"));
 const saveStatus = /** @type {HTMLElement} */ (document.getElementById("save-status"));
+const exportSettingsBtn = /** @type {HTMLButtonElement} */ (document.getElementById("export-settings-btn"));
+const importSettingsBtn = /** @type {HTMLButtonElement} */ (document.getElementById("import-settings-btn"));
+const importFile = /** @type {HTMLInputElement} */ (document.getElementById("import-file"));
+const importExportStatus = /** @type {HTMLElement} */ (document.getElementById("import-export-status"));
 
 const GOOGLE_SHEETS_PATTERN = /^https:\/\/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/;
 
@@ -193,6 +197,52 @@ saveBtn.addEventListener("click", async () => {
 
   await chrome.storage.local.set(settings);
   window.close();
+});
+
+// --- Import / Export ---
+
+exportSettingsBtn.addEventListener("click", async () => {
+  const data = await chrome.storage.local.get(["targetDocUrl", "retentionDays", "urlRules"]);
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "auto-work-log-settings.json";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+importSettingsBtn.addEventListener("click", () => {
+  importFile.click();
+});
+
+importFile.addEventListener("change", () => {
+  const file = importFile.files && importFile.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(/** @type {string} */ (reader.result));
+
+      // Populate form fields from imported data
+      if (data.targetDocUrl) targetDocUrlInput.value = data.targetDocUrl;
+      if (data.retentionDays) retentionDaysInput.value = String(data.retentionDays);
+      if (Array.isArray(data.urlRules)) {
+        rules = data.urlRules;
+        renderRules();
+      }
+
+      importExportStatus.textContent = "Settings loaded — review and press Save.";
+      importExportStatus.className = "status-msg success";
+    } catch {
+      importExportStatus.textContent = "Invalid JSON file.";
+      importExportStatus.className = "status-msg error";
+    }
+    // Reset so the same file can be re-imported
+    importFile.value = "";
+  };
+  reader.readAsText(file);
 });
 
 // --- Init ---

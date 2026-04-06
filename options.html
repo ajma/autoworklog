@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=add,delete,login,logout,save,undo&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=add,delete,download,login,logout,save,undo,upload&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="options-page">
@@ -51,6 +51,23 @@
           Reset to Defaults
         </button>
       </div>
+    </section>
+
+    <!-- Import / Export -->
+    <section class="card">
+      <h2 class="title-small">Import / Export</h2>
+      <div class="card-actions">
+        <button id="export-settings-btn" class="btn btn-outlined">
+          <span class="material-symbols-outlined">download</span>
+          Export Settings
+        </button>
+        <button id="import-settings-btn" class="btn btn-outlined">
+          <span class="material-symbols-outlined">upload</span>
+          Import Settings
+        </button>
+        <input type="file" id="import-file" accept=".json" hidden>
+      </div>
+      <div id="import-export-status" class="status-msg"></div>
     </section>
 
     <!-- Save -->
