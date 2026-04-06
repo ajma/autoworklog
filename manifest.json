@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Auto Work Log",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Tracks Google Docs visits and time spent, then exports a daily summary to a Google Doc.",
   "permissions": [
     "tabs",
@@ -11,8 +11,6 @@
     "favicon"
   ],
   "host_permissions": [
-    "https://docs.google.com/*",
-    "https://sites.google.com/*",
     "https://sheets.googleapis.com/*"
   ],
   "oauth2": {
